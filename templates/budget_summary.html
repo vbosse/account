@@ -1,0 +1,54 @@
+<html>
+<head>
+  <title>Notre budget !!!</title>
+  <link href="{{ url_for('static', filename='dist/css/bootstrap.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/datepicker.css') }}" rel="stylesheet">
+  <script src="//code.jquery.com/jquery-2.1.0.js"></script>
+  <script src="{{ url_for('static', filename='dist/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+</head>
+<body>
+
+<div class="container">
+{% with errors = get_flashed_messages(category_filter=["error"]) %}
+{% if errors %}
+<div class="alert alert-danger">
+  <ul>
+    {% for message in errors %}
+    <li>ERREUR: {{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<div class="container">
+{% with successes = get_flashed_messages(category_filter=["success"]) %}
+{% if successes %}
+<div class="alert alert-success">
+  <ul>
+    {% for message in successes %}
+    <li>{{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<ul class="nav nav-tabs">
+  <li role="presentation" class="active"><a href="/summary">Synthèse</a></li>
+  {% for key in account_init_balances.keys() %}
+  <li role="presentation"><a href="/show/entry?account_id={{ key }}">{{ key }}</a></li>
+  {% endfor %}
+</ul>
+<div class="panel panel-default">
+  {% for key in computed_balances.keys() %}
+    <div class="panel-heading">Compte {{ key }} / Solde: {{ computed_balances[key] }} EUR</div>
+  {% endfor %}
+    <div class="panel-heading">Solde global: {{ global_balance }} EUR</div>
+</div>
+
+</body>
+</html>

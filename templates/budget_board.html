@@ -1,0 +1,113 @@
+<html>
+<head>
+  <title>Notre budget !!!</title>
+  <link href="{{ url_for('static', filename='dist/css/bootstrap.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/datepicker.css') }}" rel="stylesheet">
+  <script src="//code.jquery.com/jquery-2.1.0.js"></script>
+  <script src="{{ url_for('static', filename='dist/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+</head>
+<body>
+
+<div class="container">
+{% with errors = get_flashed_messages(category_filter=["error"]) %}
+{% if errors %}
+<div class="alert alert-danger">
+  <ul>
+    {% for message in errors %}
+    <li>ERREUR: {{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<div class="container">
+{% with successes = get_flashed_messages(category_filter=["success"]) %}
+{% if successes %}
+<div class="alert alert-success">
+  <ul>
+    {% for message in successes %}
+    <li>{{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<ul class="nav nav-tabs">
+  <li role="presentation"><a href="/summary">Synthèse</a></li>
+  {% for key in account_init_balances.keys() %}
+  <li role="presentation" {% if account==key %}class="active"{% endif %}><a href="/show/entry?account_id={{ key }}">{{ key }}</a></li>
+  {% endfor %}
+</ul>
+<div class="panel panel-default">
+    <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account, entries) }} EUR / Liste des opérations</div>
+    <table class="table">
+      <tr><th>#</th><th>Date</th><th>Description</th><th>Categorie</th><th>Type</th><th>Montant</th><th>Ed.</th><th>Sup.</th></tr>
+      <tr>
+	<form role="form" class="form-inline" action="/create/entry" method=get>
+	<td><input id="account_id" name=account_id value={{ account }}  hidden="true"></td>
+	<td><input id="date_new" type="text" class="form-control" name=date data-date-format="dd-mm-yyyy" onfocus="$('#date_new').datepicker('hide');"></td>
+	<td><input id="description_new" type="text" class="form-control" name=description></td>
+	<td><input id="category_new" type="text" class="form-control" name=category></td>
+	<td>
+	  <select id="type_new" class="form-control" name=type>
+	    {% for key in trx_type_description.keys() %}
+            <option value={{ key }} >{{ trx_type_description[key] }}</option>
+	    {% endfor %}
+          </select></td>
+	<td><input id="amount_new" type="text" class="form-control" name=amount></td>
+	<td>
+	  <button id="id_new" type="submit" class="btn btn-success"><span class="glyphicon glyphicon-plus"></span></button>
+	</td>
+		<td>
+		</td>
+      </form>
+      </tr>
+      {% for entry in entries %}
+      {% if entry.id in edit_filter %}
+      <tr>
+	<form role="form" class="form-inline" action="/update/entry" method=get>
+	<td>{{ entry.id }}<input type="hidden" name=id value="{{ entry.id }}"></td>
+	<td><input id="date_{{ entry.id }}" type="text" class="form-control" name=date value="{{ format_date(entry.date) }}" data-date-format="dd-mm-yyyy" onfocus="$('#date_{{ entry.id }}').datepicker('hide');"></td>
+	<td><input id="description_{{ entry.id }}" type="text" class="form-control" name=description value="{{ entry.description }}"></td>
+	<td><input id="category_{{ entry.id }}" type="text" class="form-control" name=category value="{{ entry.category }}"></td>
+	<td>
+	  <select id="type_{{ entry.id }}" class="form-control" name=type>
+	    {% for key in trx_type_description.keys() %}
+            <option value={{ key }} {% if entry.type == key %} selected="selected"{% endif %}>{{ trx_type_description[key] }}</option>
+	    {% endfor %}
+          </select></td>
+	<td><input id="amount_{{ entry.id }}" type="text" class="form-control" name=amount value="{{ entry.amount }}"></td>
+	<td>
+	  <button id="{{ entry.id }}" type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-edit"></span></button>
+	</td>
+	<td>
+	</td>
+      </form>
+      </tr>
+      {% else %}
+      <tr>
+	<td>{{ entry.id }}</td>
+	<td>{{ format_date(entry.date) }}</td>
+	<td>{{ entry.description }}</td>
+	<td>{{ entry.category }}</td>
+	<td>{{ trx_type_description[entry.type] }}</td>
+	<td>{{ entry.amount }}</td>
+	<td>
+	  <form role="form" class="form-inline" action="entry" method=get><input type="hidden" name=edit_filter value="{{ entry.id }}"><button type="submit" class="btn btn-primary btn-sm pull-left"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button></form>
+	</td>
+	<td>
+	  <form role="form" class="form-inline" action="/delete/entry" method=get><input type="hidden" name=id value="{{ entry.id }}"><button type="submit" class="btn btn-danger btn-sm pull-right"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></form>
+	</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </table>
+</div>
+
+</body>
+</html>

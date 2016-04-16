@@ -1,0 +1,23 @@
+    function fillModal(id) {
+        var date = $("#date_"+id).html();
+	var description = $("#description_"+id).html();
+	var category = $("#category_"+id).html();
+	var type_description = $("#type_description_"+id).html();
+        var record = $("#record_"+id).find("b").html();
+        var description = $("#description_"+id).find("small").html().replace(/&amp;/g, '&');
+        $("#"+assigned).val('on')
+        $("#"+assigned+"_toggle").addClass('active');
+        $("#record").val(record);
+        $("#description").val(description);
+        $("#type").val(type);
+        $("#ticket_id").val(id);
+        if ($("#record_"+id).hasClass('urgent')) {
+             $("#URGENT_toggle").addClass('active');
+         } else if ($("#record_"+id).hasClass('normal')) {
+             $("#NORMAL_toggle").addClass('active');
+        } else if ($("#record_"+id).hasClass('global')){
+             $("#GLOBAL_toggle").addClass('active');
+        } else if ($("#record_"+id).hasClass('onhold')){
+            $("#ONHOLD_toggle").addClass('active');
+        }
+    }
