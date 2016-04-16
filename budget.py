@@ -244,12 +244,12 @@ def summary():
     oneyear = TODAY+relativedelta(years=-1)
     oneyear = date(oneyear.year, oneyear.month, 1)
     print oneyear
-    last_year = {}
+    last_year = []
     for i in range(12):
-        the_date = oneyear.relativedelta(months=+i)
+        the_date = oneyear+relativedelta(months=+12-i)
         query = get_db_session().query(Entry)
         query = query.filter(Entry.account_id.in_(account_init_balances.keys()))
-        query = query.filter(Entry.date < oneyear.relativedelta(months=+i))
+        query = query.filter(Entry.date < the_date)
         f_entries = query.order_by(Entry.date.desc()).all()
         balance = 0.0
         for entry in f_entries:
@@ -259,7 +259,7 @@ def summary():
                 balance -= entry.amount
         for key in account_init_balances.keys():
             balance += account_init_balances[key]
-        last_year[the_date] = balance
+        last_year.append( dict(date=the_date,balance=balance))
     return render_template('budget_summary.html', computed_balances=computed_balances, global_balance = global_balance, last_year=last_year)
 
 if __name__ == "__main__":

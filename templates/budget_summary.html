@@ -48,6 +48,14 @@
     <div class="panel-heading">Compte {{ key }} / Solde: {{ computed_balances[key] }} EUR</div>
   {% endfor %}
     <div class="panel-heading">Solde global: {{ global_balance }} EUR</div>
+<table class="table">
+      <tr><th>Date</th><th>Solde Global</th></tr>
+      {% for entry in last_year %}
+      <tr><td>{{ format_date(entry.date) }}</td><td>{{ entry.balance }}</td></tr>
+      {% endfor %}
+</table>
+
+</div>
 </div>
 
 </body>
