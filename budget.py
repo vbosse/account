@@ -45,7 +45,6 @@ def compute_account_balance(s_account, d_date = None):
     if account_init_balances.has_key(s_account):
         balance = account_init_balances[s_account]['balance']
         the_date = datetime.strptime(account_init_balances[s_account]['date'],'%d-%m-%Y')
-        print the_date
         query = get_db_session().query(Entry)
         query = query.filter(Entry.account_id.in_([s_account]))
         query = query.filter(Entry.date >= the_date)
@@ -218,7 +217,6 @@ def show_entry():
         category_filter = request.args.getlist('category')
     if request.args.has_key('edit_filter'):
         edit_filter = map(int,request.args.getlist('edit_filter'))
-        print edit_filter
 
     query = get_db_session().query(Entry)
     if len(account_filter) != 0:
@@ -254,7 +252,6 @@ def summary():
     TODAY = date.today()
     oneyear = TODAY+relativedelta(years=-1)
     oneyear = date(oneyear.year, oneyear.month, 1)
-    print oneyear
     last_year = []
     for i in range(12):
         temp_computed_balances = {}
