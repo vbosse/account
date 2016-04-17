@@ -32,16 +32,28 @@ trx_type_description = {0:'RETRAIT DAB',
                         4:'ECHEANCE PRET',
                         5:'VIR CPTE A CPTE EMIS',
                         6:'VIR CPTE A CPTE RECU',
+                        7:'CREDIT PREVI',
+                        8:'DEBIT PREVI',
                         100:'INCONNU'}
 
-trx_type_credit = {2, 6}
+trx_type_credit = {2, 6, 7}
 
-account_init_balances = {'commun' : -1000.0, 'immobilier': -40000.0}
+account_init_balances = {'commun' : {'balance':-1000.0, 'date':'01-04-2015'}, 
+                         'immobilier': {'balance':-40000.0, 'date':'01-04-2015'}}
 
-def compute_account_balance(s_account, l_entries):
+def compute_account_balance(s_account, d_date = None):
     if account_init_balances.has_key(s_account):
-        balance = account_init_balances[s_account]
-        for entry in l_entries:
+        balance = account_init_balances[s_account]['balance']
+        the_date = datetime.strptime(account_init_balances[s_account]['date'],'%d-%m-%Y')
+        print the_date
+        query = get_db_session().query(Entry)
+        query = query.filter(Entry.account_id.in_([s_account]))
+        query = query.filter(Entry.date >= the_date)
+        if d_date != None:
+            query = query.filter(Entry.date <= d_date)
+        f_entries = query.order_by(Entry.date.desc()).all()
+
+        for entry in f_entries:
             if entry.type in trx_type_credit:
                 balance += entry.amount
             else:
@@ -114,10 +126,9 @@ def create_entry():
 
     if error == '':
         flash(u'Nouvelle transaction enregistrée', 'success')
-        return redirect(url_for('show_entry'))
     else:
         flash(error, 'error')
-        return redirect(url_for('show_entry'))
+    return redirect(url_for('show_entry', account_id = entry.account_id))
 
 @app.route("/update/entry")
 def update_entry():
@@ -146,8 +157,10 @@ def update_entry():
     if error == '' and request.args.has_key('amount'):
         entry.amount = request.args.get('amount')
 
-    if error == '' and request.args.has_key('is_checked'):
-        entry.is_checked = request.args.get('is_checked')
+    if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
+        entry.is_checked = True
+    else:
+        entry.is_checked = False
     
     if error == '' and request.args.has_key('type') and trx_type_description.has_key(int(request.args.get('type'))):
         entry.type = int(request.args.get('type'))
@@ -164,17 +177,18 @@ def update_entry():
 
     if error == '':
         flash(u'Transaction modifiée', 'success')
-        return redirect(url_for('show_entry'))
     else:
         flash(error, 'error')
-        return redirect(url_for('show_entry'))
+    return redirect(url_for('show_entry', account_id = entry.account_id))
 
 
 @app.route("/delete/entry")
 def delete_entry():
     error = ''
+    account_id = ''
     if request.args.has_key('id'):
         try:
+            account_id = get_db_session().query(Entry).filter(Entry.id == request.args.get('id')).first().account_id
             entry = get_db_session().query(Entry).filter(Entry.id == request.args.get('id')).delete()
             get_db_session().commit()
         except:
@@ -184,10 +198,9 @@ def delete_entry():
 
     if error == '':
         flash(u'Transaction effacée', 'success')
-        return redirect(url_for('show_entry'))
     else:
         flash(error, 'error')
-        return redirect(url_for('show_entry'))
+    return redirect(url_for('show_entry',account_id=account_id))
     
 @app.route("/show/entry")
 def show_entry():
@@ -233,32 +246,24 @@ def show_entry():
 def summary():
     computed_balances = {}
     for key in account_init_balances.keys():
-        query = get_db_session().query(Entry)
-        query = query.filter(Entry.account_id.in_([key]))
-        f_entries = query.order_by(Entry.date.desc()).all()
-        computed_balances[key] = compute_account_balance(key, f_entries)
+        computed_balances[key] = compute_account_balance(key)
     global_balance = 0.0
     for key in computed_balances.keys():
         global_balance += computed_balances[key]
+    # compute balance for the last 12 months
     TODAY = date.today()
     oneyear = TODAY+relativedelta(years=-1)
     oneyear = date(oneyear.year, oneyear.month, 1)
     print oneyear
     last_year = []
     for i in range(12):
+        temp_computed_balances = {}
         the_date = oneyear+relativedelta(months=+12-i)
-        query = get_db_session().query(Entry)
-        query = query.filter(Entry.account_id.in_(account_init_balances.keys()))
-        query = query.filter(Entry.date < the_date)
-        f_entries = query.order_by(Entry.date.desc()).all()
-        balance = 0.0
-        for entry in f_entries:
-            if entry.type in trx_type_credit:
-                balance += entry.amount
-            else:
-                balance -= entry.amount
         for key in account_init_balances.keys():
-            balance += account_init_balances[key]
+            temp_computed_balances[key] = compute_account_balance(key, the_date)
+        balance = 0.0
+        for key in temp_computed_balances.keys():
+            balance += temp_computed_balances[key]
         last_year.append( dict(date=the_date,balance=balance))
     return render_template('budget_summary.html', computed_balances=computed_balances, global_balance = global_balance, last_year=last_year)
 
