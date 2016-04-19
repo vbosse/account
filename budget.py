@@ -34,12 +34,15 @@ trx_type_description = {0:'RETRAIT DAB',
                         6:'VIR CPTE A CPTE RECU',
                         7:'CREDIT PREVI',
                         8:'DEBIT PREVI',
+                        98:'SOLDE CREDIT',
+                        99:'SOLDE DEBIT',
                         100:'INCONNU'}
 
-trx_type_credit = {2, 6, 7}
+trx_type_credit = {2, 6, 7, 98}
 
-account_init_balances = {'commun' : {'balance':-1000.0, 'date':'01-04-2015'}, 
-                         'immobilier': {'balance':-40000.0, 'date':'01-04-2015'}}
+account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'}, 
+                         'charge' : {'balance':0.0, 'date':'01-01-2015'}
+                         }
 
 def compute_account_balance(s_account, d_date = None):
     if account_init_balances.has_key(s_account):
@@ -93,19 +96,22 @@ def create_entry():
         error=u'Pas de compte associé'
 
     if error == '':
-        if request.args.has_key('date'):
+        if request.args.has_key('date') and request.args.get('date') !='' :
             try:
                 entry.date = datetime.strptime(request.args.get('date'),'%d-%m-%Y')
             except:
                 error=u'Format de date invalide'
         else:
-            error=u'Pas de date associée'
+            entry.date = date.today()
 
     if error == '' and request.args.has_key('description'):
         entry.description = request.args.get('description')
 
     if error == '' and request.args.has_key('category'):
         entry.category = request.args.get('category')
+
+    if error == '' and request.args.has_key('note_id'):
+        entry.note_id = request.args.get('note_id')
 
     if error == '' and request.args.has_key('amount'):
         entry.amount = request.args.get('amount')
@@ -114,6 +120,11 @@ def create_entry():
         entry.type = int(request.args.get('type'))
     else:
         entry.type = 100
+
+    if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
+        entry.is_checked = True
+    else:
+        entry.is_checked = False
 
     if error == '':
         try:
@@ -152,6 +163,9 @@ def update_entry():
 
     if error == '' and request.args.has_key('category'):
         entry.category = request.args.get('category')
+
+    if error == '' and request.args.has_key('note_id'):
+        entry.note_id = request.args.get('note_id')
 
     if error == '' and request.args.has_key('amount'):
         entry.amount = request.args.get('amount')
@@ -231,7 +245,7 @@ def show_entry():
     if request.args.has_key('format') and request.args.get('format') == 'json':
         result = {'entries':[]}
         for f_entry in f_entries:
-            ret = {'id':f_entry.id, 'account_id':f_entry.account_id, 'date':f_entry.date.strftime("%d%m%y"), 'description':f_entry.description, 'category':f_entry.category, 'amount':f_entry.amount, 'type':f_entry.type, 'type_description':trx_type_description[f_entry.type], 'is_checked':f_entry.is_checked}
+            ret = {'id':f_entry.id, 'account_id':f_entry.account_id, 'date':f_entry.date.strftime("%d%m%y"), 'description':f_entry.description, 'category':f_entry.category, 'note_id':f_entry.note_id, 'amount':f_entry.amount, 'type':f_entry.type, 'type_description':trx_type_description[f_entry.type], 'is_checked':f_entry.is_checked}
             result['entries'].append(ret)
             resp = Response(response=json.dumps(result), status=200, mimetype="application/json")
         return resp

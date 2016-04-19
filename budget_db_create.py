@@ -19,6 +19,7 @@ class Entry(Base):
     amount = Column(Float)
     type = Column(Integer)
     is_checked = Column(Integer)
+    note_id = Column(String(250))
  
 # Create an engine that stores data in the local directory's
 # sqlalchemy_example.db file.
