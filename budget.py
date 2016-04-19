@@ -194,6 +194,44 @@ def update_entry():
         flash(error, 'error')
     return redirect(url_for('show_entry', account_id = entry.account_id))
 
+@app.route("/check/entry")
+def check_entry():
+    error = ''
+    id_list = []
+    if request.args.has_key('id'):
+        id_list = request.args.getlist('id')
+    try:
+        f_entries = get_db_session().query(Entry).filter(Entry.id.in_(id_list)).all()
+    except:
+        error = u'Erreur technique'
+        
+    for entry in f_entries:
+        if error == '' and request.args.has_key('is_checked_'+str(entry.id)) and request.args.get('is_checked_'+str(entry.id)) == "1":
+            print str(entry.id)
+            entry.is_checked = True
+        else:
+            entry.is_checked = False
+        if error == '' and request.args.has_key('amount_'+str(entry.id)):
+            entry.amount = request.args.get('amount_'+str(entry.id))
+        try:
+            get_db_session().merge(entry)
+        except:
+            error = u'Erreur technique'
+
+    if error == '':
+        try:
+            get_db_session().commit()
+        except:
+            get_db_session().rollback()
+            error = u'Erreur technique'
+    
+
+    if error == '':
+        flash(u'Transaction modifiée', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('show_entry', format='json'))
+
 
 @app.route("/delete/entry")
 def delete_entry():
@@ -221,6 +259,7 @@ def show_entry():
     type_filter=[]
     category_filter=[]
     edit_filter=[]
+    unchecked_filter = False
 
     '''Build filters'''
     if request.args.has_key('account_id'):
@@ -231,6 +270,8 @@ def show_entry():
         category_filter = request.args.getlist('category')
     if request.args.has_key('edit_filter'):
         edit_filter = map(int,request.args.getlist('edit_filter'))
+    if request.args.has_key('unchecked_filter') and request.args.get('unchecked_filter') == '1':
+        unchecked_filter  = True
 
     query = get_db_session().query(Entry)
     if len(account_filter) != 0:
@@ -239,7 +280,10 @@ def show_entry():
         query = query.filter(Entry.type.in_(type_filter))
     if len(category_filter) != 0:
         query = query.filter(Entry.category.in_(category_filter))
-        
+    if unchecked_filter:
+        query = query.filter(Entry.is_checked == False)
+
+    
     f_entries = query.order_by(Entry.date.desc()).all()
 
     if request.args.has_key('format') and request.args.get('format') == 'json':
