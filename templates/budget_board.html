@@ -45,6 +45,10 @@
 </ul>
 <div class="panel panel-default">
     <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account) }} EUR / Liste des opérations</div>
+    <form role="form" class="form-inline" action="/show/entry" method=get>
+      <input id="unchecked" name=unchecked_filter value="1"  hidden="true">
+      <input id="account_id" name=account_id value="{{ account }}"  hidden="true">
+      <button type="submit" class="btn btn-primary btn pull-right">Rapprochement</button></form>
     <table class="table">
       <tr><th>#</th><th>Date</th><th>Description</th><th>Categorie</th><th>N. Cheque</th><th>Type</th><th>Montant</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
       <tr>

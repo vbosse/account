@@ -224,13 +224,17 @@ def check_entry():
         except:
             get_db_session().rollback()
             error = u'Erreur technique'
-    
+    account_id = ''
+    if request.args.has_key('account_id'):
+        id_list = request.args.getlist('account_id')
+    if len(id_list) == 0:
+        id_list.append('commun')
 
     if error == '':
         flash(u'Transaction modifiée', 'success')
     else:
         flash(error, 'error')
-    return redirect(url_for('show_entry', format='json'))
+    return redirect(url_for('show_entry', account_id=id_list[0]))
 
 
 @app.route("/delete/entry")
@@ -296,7 +300,10 @@ def show_entry():
     else:
         if len(account_filter) == 0:
             account_filter.append('commun')
-        return render_template('budget_board.html', entries=f_entries, edit_filter=edit_filter, trx_type_description=trx_type_description, account=account_filter[0])
+        if unchecked_filter:
+            return render_template('budget_check_board.html', entries=f_entries, edit_filter=edit_filter, trx_type_description=trx_type_description, account=account_filter[0])
+        else:
+            return render_template('budget_board.html', entries=f_entries, edit_filter=edit_filter, trx_type_description=trx_type_description, account=account_filter[0])
 
 @app.route("/summary")
 def summary():
