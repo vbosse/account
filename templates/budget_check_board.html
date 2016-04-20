@@ -1,0 +1,77 @@
+<html>
+<head>
+  <title>Notre budget !!!</title>
+  <link href="{{ url_for('static', filename='dist/css/bootstrap.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/datepicker.css') }}" rel="stylesheet">
+  <script src="//code.jquery.com/jquery-2.1.0.js"></script>
+  <script src="{{ url_for('static', filename='dist/js/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
+</head>
+<body>
+
+<div class="container">
+{% with errors = get_flashed_messages(category_filter=["error"]) %}
+{% if errors %}
+<div class="alert alert-danger">
+  <ul>
+    {% for message in errors %}
+    <li>ERREUR: {{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<div class="container">
+{% with successes = get_flashed_messages(category_filter=["success"]) %}
+{% if successes %}
+<div class="alert alert-success">
+  <ul>
+    {% for message in successes %}
+    <li>{{ message }}</li>        
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<ul class="nav nav-tabs">
+  <li role="presentation"><a href="/summary">Synthèse</a></li>
+  {% for key in account_init_balances.keys() %}
+  <li role="presentation" {% if account==key %}class="active"{% endif %}><a href="/show/entry?account_id={{ key }}">{{ key }}</a></li>
+  {% endfor %}
+</ul>
+<div class="panel panel-default">
+    <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account) }} EUR / Liste des opérations</div>
+
+    <form role="form" class="form-inline" action="/check/entry" method=get>
+      <input id="account_id" name=account_id value="{{ account }}"  hidden="true">
+      <table class="table">
+      <tr><th>#</th><th>Date</th><th>Description</th><th>Categorie</th><th>N. Cheque</th><th>Type</th><th>Montant</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
+      <tr>
+      </tr>
+      {% for entry in entries %}
+      <tr>
+	<td>{{ entry.id }}<input name=id value="{{ entry.id }}" hidden="true"></td>
+	<td>{{ format_date(entry.date) }}</td>
+	<td>{{ entry.description }}</td>
+	<td>{{ entry.category }}</td>
+	<td>{{ entry.note_id }}</td>
+	<td>{{ trx_type_description[entry.type] }}</td>
+	<td><input id="amount_{{ entry.id }}" type="text" class="form-control" name=amount_{{ entry.id }} value="{{ entry.amount }}"></td>
+	<td><label id="is_checked_{{ entry.id }}" class="checkbox-inline"><input type="checkbox" value="1" name=is_checked_{{ entry.id }} {% if entry.is_checked %}checked{% endif %}></label></td>
+	<td>
+	<td>
+	</td>
+	<td>
+	</td>
+      </tr>
+      {% endfor %}
+    </table>
+<button type="submit" class="btn btn-primary btn pull-right">valider</button></form>
+</div>
+
+</body>
+</html>
