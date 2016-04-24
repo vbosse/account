@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, Response
+from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, Response, make_response
 from werkzeug.datastructures import ImmutableMultiDict
 
 from datetime import date,datetime
 
 from sqlalchemy import create_engine
+from sqlalchemy import not_
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import StatementError
+from sqlalchemy.exc import IntegrityError
 
 from budget_db_create import Base, Entry
 import json
 from dateutil.relativedelta import *
 import calendar
+
+import pyexcel as pe
+import StringIO
+import sys
 
 app = Flask(__name__)
 
@@ -32,19 +39,26 @@ trx_type_description = {0:'RETRAIT DAB',
                         4:'ECHEANCE PRET',
                         5:'VIR CPTE A CPTE EMIS',
                         6:'VIR CPTE A CPTE RECU',
-                        7:'CREDIT PREVI',
-                        8:'DEBIT PREVI',
+                        7:'CREDIT',
+                        8:'DEBIT',
                         98:'SOLDE CREDIT',
                         99:'SOLDE DEBIT',
                         100:'INCONNU'}
 
 trx_type_credit = {2, 6, 7, 98}
 
-account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'}, 
+account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'},
+                         '1A_act' : {'balance':0.0, 'date':'01-01-2015'},
+                         '1A_PEE' : {'balance':0.0, 'date':'01-01-2015'},
+                         '1A_PEE_d' : {'balance':0.0, 'date':'01-01-2015'},
+                         'immo' : {'balance':0.0, 'date':'01-01-2015'},
+                         'Em' : {'balance':0.0, 'date':'01-01-2015'},
+                         'Th' : {'balance':0.0, 'date':'01-01-2015'},
                          'charge' : {'balance':0.0, 'date':'01-01-2015'}
-                         }
+                        }
 
-def compute_account_balance(s_account, d_date = None):
+
+def compute_account_balance_v1(s_account, d_date = None):
     if account_init_balances.has_key(s_account):
         balance = account_init_balances[s_account]['balance']
         the_date = datetime.strptime(account_init_balances[s_account]['date'],'%d-%m-%Y')
@@ -64,12 +78,42 @@ def compute_account_balance(s_account, d_date = None):
     else:
         return -10000.0
 
+def compute_account_balance(s_account, d_date = None):
+    if account_init_balances.has_key(s_account):
+        balance = account_init_balances[s_account]['balance']
+        the_date = datetime.strptime(account_init_balances[s_account]['date'],'%d-%m-%Y')
+        query = get_db_session().query(Entry)
+        query = query.filter(Entry.account_id.in_([s_account]))
+        query = query.filter(Entry.date >= the_date)
+        if d_date != None:
+            query = query.filter(Entry.date <= d_date)
+        f_entries = query.order_by(Entry.date.desc()).all()
+        balance_date = None
+
+        for entry in f_entries:
+            if entry.type == 98 or entry.type == 99:
+                if entry.type == 98:
+                    balance = entry.amount
+                else:
+                    balance = -entry.amount
+                balance_date = entry.date
+                break
+        for entry in f_entries:
+            if entry.type < 98 and (balance_date == None or entry.date >= balance_date or not entry.is_checked):
+                if entry.type in trx_type_credit:
+                    balance += entry.amount
+                else:
+                    balance -= entry.amount
+        return balance
+    else:
+        return -10000.0
+
 
 @app.context_processor
 def utility_processor():
     def format_date(dDate):
         return dDate.strftime("%d-%m-%Y")
-    return dict(format_date=format_date, compute_account_balance=compute_account_balance, account_init_balances=account_init_balances)
+    return dict(format_date=format_date, compute_account_balance=compute_account_balance, account_init_balances=account_init_balances, trx_type_credit = trx_type_credit)
 
 def create_db_session():
     """Creates the sql alchemy engine."""
@@ -113,13 +157,13 @@ def create_entry():
     if error == '' and request.args.has_key('note_id'):
         entry.note_id = request.args.get('note_id')
 
-    if error == '' and request.args.has_key('amount'):
-        entry.amount = request.args.get('amount')
+    if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
+        entry.amount = float(request.args.get('amount_credit'))
+        entry.type = 7
 
-    if error == '' and request.args.has_key('type') and trx_type_description.has_key(int(request.args.get('type'))):
-        entry.type = int(request.args.get('type'))
-    else:
-        entry.type = 100
+    if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
+        entry.amount = float(request.args.get('amount_debit'))
+        entry.type = 8
 
     if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
         entry.is_checked = True
@@ -167,18 +211,19 @@ def update_entry():
     if error == '' and request.args.has_key('note_id'):
         entry.note_id = request.args.get('note_id')
 
-    if error == '' and request.args.has_key('amount'):
-        entry.amount = request.args.get('amount')
+    if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
+        entry.amount = float(request.args.get('amount_credit'))
+        entry.type = 7
+
+    if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
+        entry.amount = float(request.args.get('amount_debit'))
+        entry.type = 8
 
     if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
         entry.is_checked = True
     else:
         entry.is_checked = False
-    
-    if error == '' and request.args.has_key('type') and trx_type_description.has_key(int(request.args.get('type'))):
-        entry.type = int(request.args.get('type'))
-    else:
-        entry.type = 100
+
 
     if error == '':
         try:
@@ -198,31 +243,66 @@ def update_entry():
 def check_entry():
     error = ''
     id_list = []
+    account_id = ''
+    if request.args.has_key('account_id'):
+        account_id =  request.args.get('account_id')
+    
+    # New balance
+    if request.args.has_key('solde') and request.args.get('solde') != '':
+        entry = Entry(is_checked=True)
+        solde =  float(request.args.get('solde'))
+        entry.account_id = account_id
+        if solde > 0.0:
+            entry.type = 98
+            entry.amount = solde
+        else:
+            entry.type = 99
+            entry.amount = -solde
+        entry.date = date.today()
+        try:
+            get_db_session().add(entry)
+        except:
+            error = u'Erreur technique'
+
     if request.args.has_key('id'):
         id_list = request.args.getlist('id')
     try:
-        f_entries = get_db_session().query(Entry).filter(Entry.id.in_(id_list)).all()
+        f_entries = get_db_session().query(Entry).filter(Entry.id.in_(id_list)).filter(not_(Entry.type.in_([98,99]))).all()
     except:
         error = u'Erreur technique'
-        
+
     for entry in f_entries:
         if error == '' and request.args.has_key('is_checked_'+str(entry.id)) and request.args.get('is_checked_'+str(entry.id)) == "1":
-            print str(entry.id)
             entry.is_checked = True
         else:
             entry.is_checked = False
-        if error == '' and request.args.has_key('amount_'+str(entry.id)):
-            entry.amount = request.args.get('amount_'+str(entry.id))
+
+        if error == '' and request.args.has_key('amount_credit_'+str(entry.id)) and request.args.get('amount_credit_'+str(entry.id)) != '' :
+            entry.amount = float(request.args.get('amount_credit_'+str(entry.id)))
+            entry.type = 7
+
+        if error == '' and request.args.has_key('amount_debit_'+str(entry.id)) and request.args.get('amount_debit_'+str(entry.id)) != '':
+            entry.amount = float(request.args.get('amount_debit_'+str(entry.id)))
+            entry.type = 8
         try:
             get_db_session().merge(entry)
+        except StatementError as e:
+            print e
+            error = u'Erreur technique'
         except:
+            print "Unexpected error 2:", sys.exc_info()[0]
             error = u'Erreur technique'
 
     if error == '':
         try:
             get_db_session().commit()
+        except StatementError as e:
+            get_db_session().rollback()
+            print e
+            error = u'Erreur technique'
         except:
             get_db_session().rollback()
+            print "Unexpected error:", sys.exc_info()[0]
             error = u'Erreur technique'
     account_id = ''
     if request.args.has_key('account_id'):
@@ -288,7 +368,7 @@ def show_entry():
         query = query.filter(Entry.is_checked == False)
 
     
-    f_entries = query.order_by(Entry.date.desc()).all()
+    f_entries = query.order_by(Entry.date.desc()).filter(not_(Entry.type.in_([98,99]))).all()
 
     if request.args.has_key('format') and request.args.get('format') == 'json':
         result = {'entries':[]}
@@ -328,6 +408,50 @@ def summary():
             balance += temp_computed_balances[key]
         last_year.append( dict(date=the_date,balance=balance))
     return render_template('budget_summary.html', computed_balances=computed_balances, global_balance = global_balance, last_year=last_year)
+
+@app.route("/custom_csv")
+def custom_csv():
+    '''Build filters'''
+    date_filter = None
+    if request.args.has_key('from'):
+        try:
+            date_filter = datetime.strptime(request.args.get('from'), '%Y%m%d').date()
+        except:
+            date_filter = None
+    query = get_db_session().query(Entry)    
+    query.filter(Entry.account_id.in_('commun'))
+    if date_filter != None:
+        query.filter(Entry.date >= date_filter)
+    f_entries = query.order_by(Entry.date.desc()).all()
+    data = []
+    for entry in f_entries:
+        if entry.date >= date_filter:
+            a_row.append(entry.date)
+            a_row.append(entry.description)
+            if entry.note_id != None:
+                a_row.append(entry.note_id)
+            else:
+                a_row.append('')
+            if entry.type not in trx_type_credit:
+                a_row.append(entry.amount)
+            else:
+                a_row.append(None)
+            if entry.type in trx_type_credit:
+                a_row.append(entry.amount)
+            else:
+                a_row.append(None)
+            if entry.is_checked:
+                a_row.append('ok')
+            else:
+                a_row.append('')
+            data.append(a_row)
+    sheet = pe.Sheet(data)
+    io = StringIO.StringIO()
+    sheet.save_to_memory("csv", io)
+    output = make_response(io.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=export_1.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)
