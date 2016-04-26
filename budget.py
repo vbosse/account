@@ -16,9 +16,7 @@ import json
 from dateutil.relativedelta import *
 import calendar
 
-import pyexcel as pe
-import StringIO
-import sys
+
 
 app = Flask(__name__)
 
@@ -157,13 +155,19 @@ def create_entry():
     if error == '' and request.args.has_key('note_id'):
         entry.note_id = request.args.get('note_id')
 
-    if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
-        entry.amount = float(request.args.get('amount_credit'))
-        entry.type = 7
+    try:
+        if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
+            entry.amount = float(request.args.get('amount_credit'))
+            entry.type = 7
 
-    if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
-        entry.amount = float(request.args.get('amount_debit'))
-        entry.type = 8
+        if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
+            entry.amount = float(request.args.get('amount_debit'))
+            entry.type = 8
+    except:
+        error = u'Erreur Technique'
+
+    if entry.amount == None:
+        error = u'Erreur Technique'
 
     if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
         entry.is_checked = True
@@ -211,13 +215,18 @@ def update_entry():
     if error == '' and request.args.has_key('note_id'):
         entry.note_id = request.args.get('note_id')
 
-    if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
-        entry.amount = float(request.args.get('amount_credit'))
-        entry.type = 7
+    try:
+        if error == '' and request.args.has_key('amount_credit') and request.args.get('amount_credit') != '' :
+            entry.amount = float(request.args.get('amount_credit'))
+            entry.type = 7
 
-    if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
-        entry.amount = float(request.args.get('amount_debit'))
-        entry.type = 8
+        if error == '' and request.args.has_key('amount_debit') and request.args.get('amount_debit') != '':
+            entry.amount = float(request.args.get('amount_debit'))
+            entry.type = 8
+    except:
+        error = u'Erreur Technique'
+    if entry.amount == None:
+        error = u'Erreur Technique'
 
     if error == '' and request.args.has_key('is_checked') and request.args.get('is_checked') == "1":
         entry.is_checked = True
@@ -425,30 +434,36 @@ def custom_csv():
     f_entries = query.order_by(Entry.date.desc()).all()
     data = []
     for entry in f_entries:
+        a_row = []
         if entry.date >= date_filter:
-            a_row.append(entry.date)
-            a_row.append(entry.description)
+            a_row.append(str(entry.date))
+            if entry.description != None:
+                a_row.append(entry.description)
+            else:
+                a_row.append('')
             if entry.note_id != None:
                 a_row.append(entry.note_id)
             else:
                 a_row.append('')
             if entry.type not in trx_type_credit:
-                a_row.append(entry.amount)
+                a_row.append(str(entry.amount).replace('.',','))
             else:
-                a_row.append(None)
+                a_row.append('')
             if entry.type in trx_type_credit:
-                a_row.append(entry.amount)
+                a_row.append(str(entry.amount).replace('.',','))
             else:
-                a_row.append(None)
+                a_row.append('')
             if entry.is_checked:
                 a_row.append('ok')
             else:
                 a_row.append('')
             data.append(a_row)
-    sheet = pe.Sheet(data)
-    io = StringIO.StringIO()
-    sheet.save_to_memory("csv", io)
-    output = make_response(io.getvalue())
+    output_file = ''
+    for entry in data:
+        for column in entry:
+            output_file+=column+'\t'
+        output_file+='\n'
+    output = make_response(output_file)
     output.headers["Content-Disposition"] = "attachment; filename=export_1.csv"
     output.headers["Content-type"] = "text/csv"
     return output
