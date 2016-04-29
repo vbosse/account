@@ -60,7 +60,8 @@ account_budgeted = [{'budget':u'essence','max':200.0, 'mode':'m'},
                     {'budget':u'voyage','max':3000, 'mode':'y'},
                     {'budget':u'activité','max':2500, 'mode':'y'},
                     {'budget':u'étude Lucie','max':2200, 'mode':'y'},
-                    {'budget':u'stages','max':448, 'mode':'y'}]
+                    {'budget':u'stages','max':448, 'mode':'y'},
+                    {'budget':u'divers','max':1000, 'mode':'y'}]
 
 
 def compute_monthly_out(s_account, s_category, s_mode='m'):
