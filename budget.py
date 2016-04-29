@@ -52,7 +52,8 @@ account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'},
                          'immo' : {'balance':0.0, 'date':'01-01-2015'},
                          'Em' : {'balance':0.0, 'date':'01-01-2015'},
                          'Th' : {'balance':0.0, 'date':'01-01-2015'},
-                         'charge' : {'balance':0.0, 'date':'01-01-2015'}
+                         'charge' : {'balance':0.0, 'date':'01-01-2015'},
+                         'ep. autre' : {'balance':0.0, 'date':'01-01-2015'}
                         }
 
 account_budgeted = [{'budget':u'essence','max':200.0, 'mode':'m'},
@@ -61,15 +62,17 @@ account_budgeted = [{'budget':u'essence','max':200.0, 'mode':'m'},
                     {'budget':u'activité','max':2500, 'mode':'y'},
                     {'budget':u'étude Lucie','max':2200, 'mode':'y'},
                     {'budget':u'stages','max':448, 'mode':'y'},
-                    {'budget':u'divers','max':1000, 'mode':'y'}]
+                    {'budget':u'divers','max':1000, 'mode':'m'}]
+
+
 
 
 def compute_monthly_out(s_account, s_category, s_mode='m'):
     TODAY = date.today()
     if s_mode == 'y':
-        the_date = date(TODAY.year, TODAY.month, 1)
+        the_date = date(2016,5,1)
     else:
-        the_date = date(2016,4,1)
+        the_date = date(TODAY.year, TODAY.month, 1)
     query = get_db_session().query(Entry)
     query = query.filter(Entry.account_id.in_([s_account]))
     query = query.filter(Entry.category.in_([s_category]))
