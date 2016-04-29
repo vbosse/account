@@ -3,7 +3,6 @@
   <title>Notre budget !!!</title>
   <link href="{{ url_for('static', filename='dist/css/bootstrap.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/datepicker.css') }}" rel="stylesheet">
-  <script src="//code.jquery.com/jquery-2.1.0.js"></script>
   <script src="{{ url_for('static', filename='dist/js/bootstrap.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
 </head>
@@ -44,19 +43,29 @@
   {% endfor %}
 </ul>
 <div class="panel panel-default">
-    <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account) }} EUR / Liste des opérations</div>
+    <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account) }} EUR</div>
+    {% for entry in account_budgeted %}
+    {% if (-compute_monthly_out(account, entry.budget, entry.mode) / entry.max) < 0.7 %}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-success">{{ compute_monthly_out(account, entry.budget) }} EUR</span></div>
+    {% elif (-compute_monthly_out(account, entry.budget) / entry.max) < 1.0 %}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-warning">{{ compute_monthly_out(account, entry.budget, entry.mode) }} EUR</span></div>
+    {% else %}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-danger">{{ compute_monthly_out(account, entry.budget, entry.mode) }} EUR</span></div>
+    {% endif %}
+    {% endfor %}
     <form role="form" class="form-inline" action="/show/entry" method=get>
       <input id="unchecked" name=unchecked_filter value="1"  hidden="true">
       <input id="account_id" name=account_id value="{{ account }}"  hidden="true">
       <button type="submit" class="btn btn-primary btn pull-right">Rapprochement</button></form>
     <table class="table">
-      <tr><th>#</th><th>Date</th><th>Description</th><th>N. Cheque</th><th>Débit</th><th>Crédit</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
+      <tr><th>#</th><th>Date</th><th>Description</th><th>N. Cheque</th><th>Cat.</th><th>Débit</th><th>Crédit</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
       <tr>
 	<form role="form" class="form-inline" action="/create/entry" method=get>
 	<td><input id="account_id" name=account_id value={{ account }}  hidden="true"></td>
 	<td><input id="date_new" type="text" class="form-control" name=date data-date-format="dd-mm-yyyy" onfocus="$('#date_new').datepicker('hide');"></td>
 	<td><input id="description_new" type="text" class="form-control" name=description></td>
 	<td><input id="note_id_new" type="text" class="form-control" name=note_id></td>
+	<td><input id="category_new" type="text" class="form-control" name=category></td>
 	<td><input id="amount_debit_new" type="text" class="form-control" name=amount_debit></td>
 	<td><input id="amount_credit_new" type="text" class="form-control" name=amount_credit></td>
         <td><label id="checked_new" class="checkbox-inline"><input type="checkbox" value=1 name=is_checked></label></td>
@@ -75,6 +84,7 @@
 	<td><input id="date_{{ entry.id }}" type="text" class="form-control" name=date value="{{ format_date(entry.date) }}" data-date-format="dd-mm-yyyy" onfocus="$('#date_{{ entry.id }}').datepicker('hide');"></td>
 	<td><input id="description_{{ entry.id }}" type="text" class="form-control" name=description value="{{ entry.description }}"></td>
 	<td><input id="note_id_{{ entry.id }}" type="text" class="form-control" name=note_id value="{{ entry.note_id }}"></td>
+	<td><input id="category_{{ entry.id }}" type="text" class="form-control" name=category value="{{ entry.category }}"></td>
 	<td><input id="amount_debit_{{ entry.id }}" type="text" class="form-control" name=amount_debit value="{%if entry.type not in trx_type_credit %}{{ entry.amount }}{% endif %}"></td>
 	<td><input id="amount_credit_{{ entry.id }}" type="text" class="form-control" name=amount_credit value="{%if entry.type in trx_type_credit %}{{ entry.amount }}{% endif %}"></td>
 	<td><label id="checked_{{ entry.id }}" class="checkbox-inline"><input type="checkbox" value="1" name=is_checked {% if entry.is_checked %}checked{% endif %}></label></td>
@@ -91,6 +101,7 @@
 	<td>{{ format_date(entry.date) }}</td>
 	<td>{{ entry.description }}</td>
 	<td>{{ entry.note_id }}</td>
+	<td>{{ entry.category }}</td>
 	<td>{%if entry.type not in trx_type_credit %}{{ entry.amount }}{% endif %}</td>
 	<td>{%if entry.type in trx_type_credit %}{{ entry.amount }}{% endif %}</td>
         <td>{%if entry.is_checked %}<span class="glyphicon glyphicon-ok" aria-hidden="true">{% endif %}</td>

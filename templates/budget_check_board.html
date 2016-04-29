@@ -3,7 +3,6 @@
   <title>Notre budget !!!</title>
   <link href="{{ url_for('static', filename='dist/css/bootstrap.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='css/datepicker.css') }}" rel="stylesheet">
-  <script src="//code.jquery.com/jquery-2.1.0.js"></script>
   <script src="{{ url_for('static', filename='dist/js/bootstrap.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/bootstrap-datepicker.js') }}"></script>
 </head>
@@ -53,7 +52,7 @@
 	<input id="solde" type="text" class="form-control" name=solde>
       </div>
       <table class="table">
-      <tr><th>#</th><th>Date</th><th>Description</th><th>N. Cheque</th><th>Débit</th><th>Crédit</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
+      <tr><th>#</th><th>Date</th><th>Description</th><th>N. Cheque</th><th>Cat.</th><th>Débit</th><th>Crédit</th><th>Rap.</th><th>Ed.</th><th>Sup.</th></tr>
       <tr>
       </tr>
       {% for entry in entries %}
@@ -62,6 +61,7 @@
 	<td>{{ format_date(entry.date) }}</td>
 	<td>{{ entry.description }}</td>
 	<td>{{ entry.note_id }}</td>
+	<td>{{ entry.category }}</td>
 	{% if entry.type not in trx_type_credit %}
 	<td><input id="amount_debit_{{ entry.id }}" type="text" class="form-control" name=amount_debit_{{ entry.id }} value="{{ entry.amount }}"></td>
         {% else %}

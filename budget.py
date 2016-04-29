@@ -55,6 +55,34 @@ account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'},
                          'charge' : {'balance':0.0, 'date':'01-01-2015'}
                         }
 
+account_budgeted = [{'budget':u'essence','max':200.0, 'mode':'m'},
+                    {'budget':u'cantine','max':120.0, 'mode':'m'},
+                    {'budget':u'voyage','max':3000, 'mode':'y'},
+                    {'budget':u'activité','max':2500, 'mode':'y'},
+                    {'budget':u'étude Lucie','max':2200, 'mode':'y'},
+                    {'budget':u'stages','max':448, 'mode':'y'}]
+
+
+def compute_monthly_out(s_account, s_category, s_mode='m'):
+    TODAY = date.today()
+    if s_mode == 'y':
+        the_date = date(TODAY.year, TODAY.month, 1)
+    else:
+        the_date = date(2016,4,1)
+    query = get_db_session().query(Entry)
+    query = query.filter(Entry.account_id.in_([s_account]))
+    query = query.filter(Entry.category.in_([s_category]))
+    query = query.filter(Entry.date >= the_date)
+    total = 0.0
+
+    f_entries = query.all()
+    for entry in f_entries:
+        if entry.type in trx_type_credit:
+            total += entry.amount
+        else:
+            total -= entry.amount
+    return total
+    
 
 def compute_account_balance_v1(s_account, d_date = None):
     if account_init_balances.has_key(s_account):
@@ -111,7 +139,7 @@ def compute_account_balance(s_account, d_date = None):
 def utility_processor():
     def format_date(dDate):
         return dDate.strftime("%d-%m-%Y")
-    return dict(format_date=format_date, compute_account_balance=compute_account_balance, account_init_balances=account_init_balances, trx_type_credit = trx_type_credit)
+    return dict(format_date=format_date, compute_account_balance=compute_account_balance, account_init_balances=account_init_balances, trx_type_credit = trx_type_credit, account_budgeted=account_budgeted, compute_monthly_out=compute_monthly_out)
 
 def create_db_session():
     """Creates the sql alchemy engine."""
