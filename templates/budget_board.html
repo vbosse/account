@@ -45,12 +45,16 @@
 <div class="panel panel-default">
     <div class="panel-heading">Compte {{ account }} / Solde: {{ compute_account_balance(account) }} EUR</div>
     {% for entry in account_budgeted %}
-    {% if (-compute_monthly_out(account, entry.budget, entry.mode) / entry.max) < 0.7 %}
-    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-success">{{ compute_monthly_out(account, entry.budget) }} EUR</span></div>
+    {% if entry.max == 0 and compute_monthly_out(account, entry.budget) >= 0%}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-success">{{ compute_monthly_out(account, entry.budget) }} / {{ entry.max }} EUR</span></div>
+    {% elif entry.max == 0 %}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-danger">{{ compute_monthly_out(account, entry.budget) }} / {{ entry.max }} EUR</span></div>
+    {% elif (-compute_monthly_out(account, entry.budget, entry.mode) / entry.max) < 0.7 %}
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-success">{{ compute_monthly_out(account, entry.budget) }} / {{ entry.max }} EUR</span></div>
     {% elif (-compute_monthly_out(account, entry.budget) / entry.max) < 1.0 %}
-    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-warning">{{ compute_monthly_out(account, entry.budget, entry.mode) }} EUR</span></div>
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-warning">{{ compute_monthly_out(account, entry.budget, entry.mode) }} / {{ entry.max }} EUR</span></div>
     {% else %}
-    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-danger">{{ compute_monthly_out(account, entry.budget, entry.mode) }} EUR</span></div>
+    <div class="panel-heading">Budget {{ entry.budget }} / Dépense: <span class="label label-danger">{{ compute_monthly_out(account, entry.budget, entry.mode) }} / {{ entry.max }} EUR</span></div>
     {% endif %}
     {% endfor %}
     <form role="form" class="form-inline" action="/show/entry" method=get>

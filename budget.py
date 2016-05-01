@@ -56,13 +56,16 @@ account_init_balances = {'commun' : {'balance':0.0, 'date':'01-01-2015'},
                          'ep. autre' : {'balance':0.0, 'date':'01-01-2015'}
                         }
 
-account_budgeted = [{'budget':u'essence','max':200.0, 'mode':'m'},
-                    {'budget':u'cantine','max':120.0, 'mode':'m'},
-                    {'budget':u'voyage','max':3000, 'mode':'y'},
-                    {'budget':u'activité','max':2500, 'mode':'y'},
-                    {'budget':u'étude Lucie','max':2200, 'mode':'y'},
-                    {'budget':u'stages','max':448, 'mode':'y'},
-                    {'budget':u'divers','max':1000, 'mode':'m'}]
+account_budgeted = [
+    {'budget':u'divers','max':1000, 'mode':'m'},    
+    {'budget':u'essence','max':200.0, 'mode':'m'},
+    {'budget':u'cantine','max':120.0, 'mode':'m'},
+    {'budget':u'voyage','max':3000, 'mode':'y'},
+    {'budget':u'activité','max':2500, 'mode':'y'},
+    {'budget':u'étude Lucie','max':2200, 'mode':'y'},
+    {'budget':u'stages','max':448, 'mode':'y'},
+    {'budget':u'santé','max':0, 'mode':'y'}
+                    ]
 
 
 
